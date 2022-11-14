@@ -35,6 +35,15 @@ public class Task {
      */
     private long creationTimestamp;
 
+
+    /**
+     * Empty Constructor
+     */
+    public Task(){
+
+    }
+
+
     /**
      * Instantiates a new Task.
      *
