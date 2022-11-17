@@ -15,7 +15,7 @@ public class Task {
     /**
      * The unique identifier of the task
      */
-    private long id;
+    private String id;
 
     /**
      * The unique identifier of the project associated to the task
@@ -40,7 +40,6 @@ public class Task {
      * Empty Constructor
      */
     public Task(){
-
     }
 
 
@@ -52,7 +51,7 @@ public class Task {
      * @param name              the name of the task to set
      * @param creationTimestamp the timestamp when the task has been created to set
      */
-    public Task(long id, long projectId, @NonNull String name, long creationTimestamp) {
+    public Task(String id, long projectId, @NonNull String name, long creationTimestamp) {
         this.setId(id);
         this.setProjectId(projectId);
         this.setName(name);
@@ -64,7 +63,7 @@ public class Task {
      *
      * @return the unique identifier of the task
      */
-    public long getId() {
+    public String getId() {
         return id;
     }
 
@@ -73,7 +72,7 @@ public class Task {
      *
      * @param id the unique idenifier of the task to set
      */
-    private void setId(long id) {
+    private void setId(String id) {
         this.id = id;
     }
 

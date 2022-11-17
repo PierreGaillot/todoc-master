@@ -11,9 +11,13 @@ import androidx.appcompat.widget.AppCompatImageView;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.cleanup.todoc.R;
-import com.cleanup.todoc.model.Project;
 import com.cleanup.todoc.model.Task;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -22,6 +26,7 @@ import java.util.List;
  * @author Gaëtan HERFRAY
  */
 public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHolder> {
+
     /**
      * The list of tasks the adapter deals with
      */
@@ -88,7 +93,7 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
      *
      * @author Gaëtan HERFRAY
      */
-    class TaskViewHolder extends RecyclerView.ViewHolder {
+    static class TaskViewHolder extends RecyclerView.ViewHolder {
         /**
          * The circle icon showing the color of the project
          */
@@ -117,7 +122,7 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
         /**
          * Instantiates a new TaskViewHolder.
          *
-         * @param itemView the view of the task item
+         * @param itemView           the view of the task item
          * @param deleteTaskListener the listener for when a task needs to be deleted to set
          */
         TaskViewHolder(@NonNull View itemView, @NonNull DeleteTaskListener deleteTaskListener) {
@@ -130,13 +135,10 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
             lblProjectName = itemView.findViewById(R.id.lbl_project_name);
             imgDelete = itemView.findViewById(R.id.img_delete);
 
-            imgDelete.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    final Object tag = view.getTag();
-                    if (tag instanceof Task) {
-                        TaskViewHolder.this.deleteTaskListener.onDeleteTask((Task) tag);
-                    }
+            imgDelete.setOnClickListener(view -> {
+                final Object tag = view.getTag();
+                if (tag instanceof Task) {
+                    TaskViewHolder.this.deleteTaskListener.onDeleteTask((Task) tag);
                 }
             });
         }
@@ -150,15 +152,45 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
             lblTaskName.setText(task.getName());
             imgDelete.setTag(task);
 
-            final Project taskProject = task.getProject();
-            if (taskProject != null) {
-                imgProject.setSupportImageTintList(ColorStateList.valueOf(taskProject.getColor()));
-                lblProjectName.setText(taskProject.getName());
-            } else {
-                imgProject.setVisibility(View.INVISIBLE);
-                lblProjectName.setText("");
-            }
+            System.out.println(task.getId());
 
+            FirebaseFirestore db = FirebaseFirestore.getInstance();
+            db.document("tasks/" +task.getId())
+                    .get()
+                    .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                        @Override
+                        public void onSuccess(DocumentSnapshot documentSnapshot) {
+                            if(documentSnapshot != null){
+                                HashMap project = (HashMap) documentSnapshot.get("project");
+                                System.out.println( project.get("id"));
+
+                                if (project != null) {
+                                    imgProject.setSupportImageTintList(ColorStateList.valueOf(Integer.parseInt(String.valueOf(project.get("color")))));
+                                    lblProjectName.setText(String.valueOf(project.get("name")));
+                                } else {
+                                    imgProject.setVisibility(View.INVISIBLE);
+                                    lblProjectName.setText("");
+                                }
+                            }
+                        }
+                    }).addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+
+                        }
+                    });
         }
     }
 }
+
+
+//    HashMap project = (HashMap) task.get("project");
+//                                System.out.println(project.get("id"));
+//
+//                                        if(project!=null){
+//                                        imgProject.setSupportImageTintList(ColorStateList.valueOf(Integer.parseInt(String.valueOf(project.get("color")))));
+//                                        lblProjectName.setText(String.valueOf(project.get("name")));
+//                                        }else{
+//                                        imgProject.setVisibility(View.INVISIBLE);
+//                                        lblProjectName.setText("");
+//                                        }

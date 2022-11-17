@@ -28,6 +28,7 @@ public class Project {
     @ColorInt
     private final int color;
 
+
     /**
      * Instantiates a new Project.
      *

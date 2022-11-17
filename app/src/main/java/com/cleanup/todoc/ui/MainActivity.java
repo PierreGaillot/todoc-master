@@ -33,8 +33,6 @@ import com.google.firebase.firestore.QuerySnapshot;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * <p>Home activity of the application which is displayed when the user opens the app.</p>
@@ -107,29 +105,6 @@ public class MainActivity extends AppCompatActivity implements TasksAdapter.Dele
     private TextView lblNoTasks;
 
 
-    /**
-     * Get tasks from Firestore DB
-     */
-    @NonNull
-    public void getTasks() {
-        db.collection("tasks")
-                .get()
-                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                    @Override
-                    public void onComplete(@NonNull com.google.android.gms.tasks.Task<QuerySnapshot> task) {
-                        if (task.isSuccessful()) {
-                            for (QueryDocumentSnapshot document : task.getResult()) {
-                                Log.d(TAG, document.getId() + " => " + document.getData());
-                                Task appTask = document.toObject(Task.class);
-                                tasks.add(appTask);
-                            }
-                        } else {
-                            Log.w(TAG, "Error getting documents.", task.getException());
-                        }
-                    }
-                });
-    }
-
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -139,7 +114,7 @@ public class MainActivity extends AppCompatActivity implements TasksAdapter.Dele
         listTasks = findViewById(R.id.list_tasks);
         lblNoTasks = findViewById(R.id.lbl_no_task);
 
-        updateTasks();
+        initializeTasks();
 
         listTasks.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
         listTasks.setAdapter(adapter);
@@ -180,7 +155,15 @@ public class MainActivity extends AppCompatActivity implements TasksAdapter.Dele
     @Override
     public void onDeleteTask(Task task) {
         tasks.remove(task);
-        updateTasks();
+        db.collection("tasks")
+                .document(task.getId()).delete()
+                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull com.google.android.gms.tasks.Task<Void> task) {
+                        System.out.println("Delete");
+                        updateTasks();
+                    }
+                });
     }
 
     /**
@@ -207,8 +190,12 @@ public class MainActivity extends AppCompatActivity implements TasksAdapter.Dele
             // If both project and name of the task have been set
             else if (taskProject != null) {
                 // TODO: Replace this by id of persisted task
-                long id = (long) (Math.random() * 50000);
+                String id = "";
 
+//                long cId = id;
+//                long cProjectId = taskProject.getId();
+//                String cName = taskName;
+//                long cCreationTimestamp = new Date().getTime();
 
                 Task task = new Task(
                         id,
@@ -258,7 +245,20 @@ public class MainActivity extends AppCompatActivity implements TasksAdapter.Dele
                 .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
                     @Override
                     public void onSuccess(DocumentReference documentReference) {
-                        Log.d(TAG, "DocumentSnapshot added with ID: " + documentReference.getId());
+                        db.document("tasks/" +documentReference.getId())
+                                .update("id", documentReference.getId())
+                                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                    @Override
+                                    public void onSuccess(Void unused) {
+                                        System.out.println("document was updated");
+                                        initializeTasks();
+                                    }
+                                }).addOnFailureListener(new OnFailureListener() {
+                                    @Override
+                                    public void onFailure(@NonNull Exception e) {
+                                        System.out.println(e.getMessage());
+                                    }
+                                });
                     }
                 }).addOnFailureListener(new OnFailureListener() {
                     @Override
@@ -266,15 +266,43 @@ public class MainActivity extends AppCompatActivity implements TasksAdapter.Dele
                         Log.w(TAG, "Error adding document", e);
                     }
                 });
-        tasks.add(task);
-        updateTasks();
+
+//     updateTasks();
     }
+
+
+    /**
+     * Initialize the list of tasks in the UI from DB
+     */
+    private void initializeTasks() {
+        tasks.clear();
+        db.collection("tasks")
+                .get()
+                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull com.google.android.gms.tasks.Task<QuerySnapshot> task) {
+                        if (task.isSuccessful()) {
+                            for (QueryDocumentSnapshot document : task.getResult()) {
+                                Log.d(TAG, document.getId() + " => " + document.getData());
+                                Task t = document.toObject(Task.class);
+                                // Je ne comprend pas pourquoi il stocke le projet complet et pas simplement l'Id comme demandé ?
+                                // et POURQUOI il e stoke pas la creationTimestamp ?
+                                tasks.add(t);
+                                updateTasks();
+                            }
+                        } else {
+                            Log.w(TAG, "Error getting documents.", task.getException());
+                        }
+                    }
+                });
+    }
+
 
     /**
      * Updates the list of tasks in the UI
      */
     private void updateTasks() {
-        getTasks();
+
         if (tasks.size() == 0) {
             lblNoTasks.setVisibility(View.VISIBLE);
             listTasks.setVisibility(View.GONE);
